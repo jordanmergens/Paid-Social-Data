@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FY26 Platform Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --glass-bg: rgba(255,255,255,0.12);
+    --glass-border: rgba(255,255,255,0.28);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.28);
+    --attract: #5ac8fa;
+    --attract2: #0a84ff;
+    --engage: #30d158;
+    --engage2: #34c759;
+    --acquire: #bf5af2;
+    --acquire2: #9b59b6;
+    --text-primary: rgba(255,255,255,0.95);
+    --text-secondary: rgba(255,255,255,0.60);
+    --text-tertiary: rgba(255,255,255,0.40);
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1040 30%, #0d2137 60%, #0a3347 100%);
+    min-height: 100vh;
+    color: var(--text-primary);
+    padding: 32px 24px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, #5ac8fa, transparent);
+    top: -150px; left: -150px;
+  }
+  body::after {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #bf5af2, transparent);
+    bottom: -100px; right: -100px;
+  }
+
+  .page-wrap { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-left p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    letter-spacing: 0.3px;
+  }
+  .badge {
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.20);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Glass card */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* KPI row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .kpi-card { padding: 20px 22px; border-radius: var(--radius-sm); }
+  .kpi-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .kpi-card .value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .kpi-card .sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+  .kpi-attract .value { color: var(--attract); }
+  .kpi-engage  .value { color: var(--engage); }
+  .kpi-acquire .value { color: var(--acquire); }
+  .kpi-total   .value { color: #fff; }
+
+  /* Section heading */
+  .section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  /* Funnel block */
+  .funnel-block { margin-bottom: 36px; }
+  .funnel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .funnel-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .funnel-title { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .funnel-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+  /* Campaign filter pills */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-tertiary);
+    margin-right: 4px;
+  }
+  .pill {
+    padding: 5px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.07);
+    color: var(--text-secondary);
+    transition: all 0.18s ease;
+    user-select: none;
+  }
+  .pill:hover { background: rgba(255,255,255,0.14); color: var(--text-primary); }
+  .pill.active {
+    background: rgba(255,255,255,0.22);
+    color: #fff;
+    border-color: rgba(255,255,255,0.40);
+  }
+  .pill.active-attract { background: rgba(90,200,250,0.25); border-color: rgba(90,200,250,0.55); color: var(--attract); }
+  .pill.active-engage  { background: rgba(48,209,88,0.22);  border-color: rgba(48,209,88,0.55);  color: var(--engage); }
+  .pill.active-acquire { background: rgba(191,90,242,0.22); border-color: rgba(191,90,242,0.55); color: var(--acquire); }
+
+  /* Chart grid */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-card { padding: 22px 24px; position: relative; }
+  .chart-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    letter-spacing: 0.1px;
+  }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* Creative table */
+  .creative-card { padding: 22px 24px; }
+  .creative-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    letter-spacing: 0.1px;
+  }
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    padding: 8px 12px;
+    text-align: right;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.05); }
+  tbody td { padding: 9px 12px; text-align: right; color: var(--text-primary); white-space: nowrap; }
+  tbody td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .spend-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .spend-bar { height: 4px; border-radius: 2px; min-width: 2px; flex-shrink: 0; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 4px 0 32px; }
+
+  /* WoW section */
+  .wow-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 900px) { .wow-grid { grid-template-columns: 1fr; } }
+  .wow-card { padding: 22px 24px; }
+  .wow-funnel-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wow-camp-tag {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: var(--text-tertiary);
+    text-transform: none;
+  }
+  .wow-metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .wow-metric-row:last-child { border-bottom: none; }
+  .wow-metric-name { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .wow-vals { display: flex; align-items: center; gap: 14px; }
+  .wow-val { text-align: right; }
+  .wow-val .wk-label { font-size: 10px; color: var(--text-tertiary); margin-bottom: 2px; }
+  .wow-val .wk-value { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .wow-delta {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 8px;
+    min-width: 62px;
+    text-align: center;
+  }
+  .delta-good    { color: #30d158; background: rgba(48,209,88,0.13); }
+  .delta-bad     { color: #ff453a; background: rgba(255,69,58,0.13); }
+  .delta-neutral { color: var(--text-tertiary); background: rgba(255,255,255,0.07); }
+
+  /* Footer */
+  .footer { text-align: center; font-size: 11px; color: var(--text-tertiary); margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Platform Performance Dashboard</h1>
+      <p>Meta · Fiscal Year 2026 · Weeks 1–36 · All Funnels</p>
+    </div>
+    <span class="badge">FY26</span>
+  </div>
+
+  <!-- WoW Section -->
+  <p class="section-title">Week-over-Week Snapshot — Wk 35 vs Wk 36</p>
+  <div class="wow-grid">
+    <div id="wow-attract" class="glass wow-card"></div>
+    <div id="wow-engage"  class="glass wow-card"></div>
+    <div id="wow-acquire" class="glass wow-card"></div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- KPI Row -->
+  <p class="section-title">Overall FY26 Summary</p>
+  <div class="kpi-row">
+    <div class="glass kpi-card kpi-total">
+      <div class="label">Total Spend</div>
+      <div class="value">$10.3M</div>
+      <div class="sub">All funnels combined</div>
+    </div>
+    <div class="glass kpi-card kpi-attract">
+      <div class="label">Attract Spend</div>
+      <div class="value">$3.2M</div>
+      <div class="sub">Avg CPM $4.57</div>
+    </div>
+    <div class="glass kpi-card kpi-engage">
+      <div class="label">Engage Spend</div>
+      <div class="value">$2.5M</div>
+      <div class="sub">Avg CPLPV $0.71</div>
+    </div>
+    <div class="glass kpi-card kpi-acquire">
+      <div class="label">Acquire Spend</div>
+      <div class="value">$4.6M</div>
+      <div class="sub">Avg CPPSU $204</div>
+    </div>
+    <div class="glass kpi-card kpi-attract">
+      <div class="label">Attract Impressions</div>
+      <div class="value">692M</div>
+      <div class="sub">Avg CTR 0.08%</div>
+    </div>
+    <div class="glass kpi-card kpi-engage">
+      <div class="label">Engage Impressions</div>
+      <div class="value">275M</div>
+      <div class="sub">Avg CTR 1.30%</div>
+    </div>
+    <div class="glass kpi-card kpi-acquire">
+      <div class="label">Acquire Impressions</div>
+      <div class="value">293M</div>
+      <div class="sub">Avg CTR 0.39%</div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ATTRACT -->
+  <div class="funnel-block">
+    <div class="funnel-header">
+      <div class="funnel-dot" style="background:var(--attract);box-shadow:0 0 8px var(--attract);"></div>
+      <span class="funnel-title" style="color:var(--attract);">Attract</span>
+      <span class="funnel-subtitle">CPM & CTR · Weekly Trend</span>
+    </div>
+    <div class="filter-row" id="filters-attract">
+      <span class="filter-label">Campaign</span>
+    </div>
+    <div class="chart-grid">
+      <div class="glass chart-card">
+        <div class="chart-label">Cost Per Mille (CPM)</div>
+        <div class="chart-wrap"><canvas id="attractCPM"></canvas></div>
+      </div>
+      <div class="glass chart-card">
+        <div class="chart-label">Click-Through Rate (CTR %)</div>
+        <div class="chart-wrap"><canvas id="attractCTR"></canvas></div>
+      </div>
+    </div>
+    <div class="glass creative-card">
+      <h3 id="attract-tbl-title">Creative Performance — Attract · All Campaigns (Top 15 by Spend)</h3>
+      <div class="tbl-wrap"><table id="tbl-attract"></table></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ENGAGE -->
+  <div class="funnel-block">
+    <div class="funnel-header">
+      <div class="funnel-dot" style="background:var(--engage);box-shadow:0 0 8px var(--engage);"></div>
+      <span class="funnel-title" style="color:var(--engage);">Engage</span>
+      <span class="funnel-subtitle">CPLPV & CTR · Weekly Trend</span>
+    </div>
+    <div class="filter-row" id="filters-engage">
+      <span class="filter-label">Campaign</span>
+    </div>
+    <div class="chart-grid">
+      <div class="glass chart-card">
+        <div class="chart-label">Cost Per Landing Page View (CPLPV)</div>
+        <div class="chart-wrap"><canvas id="engageCPLPV"></canvas></div>
+      </div>
+      <div class="glass chart-card">
+        <div class="chart-label">Click-Through Rate (CTR %)</div>
+        <div class="chart-wrap"><canvas id="engageCTR"></canvas></div>
+      </div>
+    </div>
+    <div class="glass creative-card">
+      <h3 id="engage-tbl-title">Creative Performance — Engage · All Campaigns (Top 15 by Spend)</h3>
+      <div class="tbl-wrap"><table id="tbl-engage"></table></div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ACQUIRE -->
+  <div class="funnel-block">
+    <div class="funnel-header">
+      <div class="funnel-dot" style="background:var(--acquire);box-shadow:0 0 8px var(--acquire);"></div>
+      <span class="funnel-title" style="color:var(--acquire);">Acquire</span>
+      <span class="funnel-subtitle">CPPSU & CPFSU · Weekly Trend</span>
+    </div>
+    <div class="filter-row" id="filters-acquire">
+      <span class="filter-label">Campaign</span>
+    </div>
+    <div class="chart-grid">
+      <div class="glass chart-card">
+        <div class="chart-label">Cost Per Paid Sign Up (CPPSU)</div>
+        <div class="chart-wrap"><canvas id="acquireCPPSU"></canvas></div>
+      </div>
+      <div class="glass chart-card">
+        <div class="chart-label">Cost Per Free Sign Up (CPFSU)</div>
+        <div class="chart-wrap"><canvas id="acquireCPFSU"></canvas></div>
+      </div>
+    </div>
+    <div class="glass creative-card">
+      <h3 id="acquire-tbl-title">Creative Performance — Acquire · All Campaigns (Top 15 by Spend)</h3>
+      <div class="tbl-wrap"><table id="tbl-acquire"></table></div>
+    </div>
+  </div>
+
+  <div class="footer">Mailchimp · Meta Platform · FY26 · Data through Week 36 · Generated April 2026</div>
+</div>
+
+<script>
+// ─── Week labels ─────────────────────────────────────────────────────────────
+const wLabels = Array.from({length:36}, (_,i) => 'Wk '+(i+1));
+
+// ─── Pre-computed data keyed by funnel → campaign → metric ───────────────────
+const DATA = {"Attract":{"charts":{"ALL":{"CPM":[3.2499,3.3239,3.5226,3.599,3.9634,4.5053,4.5707,4.7184,5.108,4.9595,4.5688,4.4441,4.7723,4.9048,4.7537,5.2031,5.5515,6.071,6.4334,6.113,5.3878,4.7228,3.4093,4.0003,4.3656,4.0401,4.266,3.7386,3.9665,3.9801,4.2544,4.0348,4.2944,4.3498,4.5433,4.5318],"CTR":[0.1375,0.0883,0.0596,0.0495,0.0685,0.1029,0.0962,0.1012,0.118,0.1027,0.0831,0.0687,0.072,0.0723,0.0762,0.0739,0.0827,0.0836,0.0894,0.0854,0.0795,0.0822,0.073,0.074,0.0905,0.0953,0.0962,0.0996,0.0953,0.0987,0.0958,0.0927,0.0957,0.0983,0.0958,0.0945]},"MYM":{"CPM":[3.2499,3.3239,3.5226,3.599,3.9634,4.4381,4.4504,4.6674,4.8467,4.6318,4.3423,4.2123,4.4203,4.5504,4.436,4.8822,5.2031,5.7099,5.758,5.4997,4.9888,4.1387,2.9663,3.1851,3.7092,3.7124,3.728,3.7157,3.9092,3.9531,4.2257,4.0404,4.3127,4.3738,4.5732,4.5662],"CTR":[0.1375,0.0883,0.0596,0.0495,0.0685,0.1021,0.0969,0.1043,0.1208,0.102,0.0818,0.0662,0.0709,0.0706,0.0749,0.0725,0.0839,0.0857,0.0927,0.0871,0.0806,0.0788,0.0721,0.0709,0.0946,0.1029,0.1026,0.0993,0.0949,0.0986,0.0947,0.0924,0.0952,0.0988,0.0959,0.0942]},"ABM":{"CPM":[null,null,null,null,null,9.7961,6.473,5.2553,7.8229,8.5134,6.6977,6.1585,7.2791,7.3631,8.9638,9.1361,9.4907,10.0656,12.1386,12.2923,7.9453,9.4621,11.4374,18.7726,12.3454,6.0284,10.2753,4.1981,6.5616,32.795,4.9461,3.885,3.8469,3.7769,3.8385,3.7444],"CTR":[null,null,null,null,null,0.165,0.085,0.069,0.0889,0.1112,0.0956,0.0867,0.0918,0.1061,0.1495,0.132,0.1364,0.1363,0.1441,0.1549,0.1311,0.1641,0.1796,0.2258,0.1661,0.1448,0.176,0.1069,0.1124,0.1869,0.1213,0.1014,0.1093,0.0874,0.0924,0.1006]},"REMARKETING":{"CPM":[null,null,null,null,null,null,null,null,null,null,null,null,5.2774,5.4714,5.6395,6.1019,6.6564,7.1226,7.7033,7.4155,6.4429,5.1106,3.9924,4.4066,4.5713,4.4943,4.4022,null,null,null,null,null,null,null,null,null],"CTR":[null,null,null,null,null,null,null,null,null,null,null,null,0.0506,0.0496,0.0578,0.0608,0.049,0.0428,0.0499,0.0496,0.05,0.0527,0.0451,0.0464,0.0444,0.0478,0.0485,null,null,null,null,null,null,null,null,null]}},"creatives":{"ALL":[{"c":"MULTI","spend":2153777.04,"ctr":0.08,"cpm":4.3435,"cplpv":5.186,"cppsu":1508.2472,"cpfsu":448.7036},{"c":"MULTIPHONES","spend":196030.66,"ctr":0.0504,"cpm":5.3603,"cplpv":13.2052,"cppsu":276.4889,"cpfsu":162.5462},{"c":"CJBCOSMETIC","spend":144187.2,"ctr":0.1016,"cpm":3.7702,"cplpv":4.1837,"cppsu":385.5273,"cpfsu":220.1331},{"c":"FEBSIZZLE","spend":96659.91,"ctr":0.0953,"cpm":4.8876,"cplpv":5.6253,"cppsu":445.4374,"cpfsu":335.6247},{"c":"MULTIEXPLAINER ","spend":78281.85,"ctr":0.1239,"cpm":3.8918,"cplpv":3.6721,"cppsu":543.624,"cpfsu":230.2407},{"c":"SWITCHQUOTE1","spend":70321.96,"ctr":0.1686,"cpm":10.0684,"cplpv":9.0087,"cppsu":3196.4527,"cpfsu":1465.0408},{"c":"MULTIEXPLAINER","spend":62190.11,"ctr":0.0595,"cpm":5.2453,"cplpv":11.8457,"cppsu":290.608,"cpfsu":136.6816},{"c":"POPUP","spend":30294.53,"ctr":0.0836,"cpm":3.9086,"cplpv":5.4223,"cppsu":322.2822,"cpfsu":219.5256},{"c":"GENAI","spend":27722.88,"ctr":0.1856,"cpm":14.9999,"cplpv":12.1272,"cppsu":1459.0989,"cpfsu":815.3788},{"c":"QBGENAI","spend":21853.65,"ctr":0.1649,"cpm":12.635,"cplpv":11.0595,"cppsu":1214.0917,"cpfsu":753.5741},{"c":"JOHNNY","spend":21195.52,"ctr":0.0896,"cpm":4.6388,"cplpv":5.8487,"cppsu":359.2461,"cpfsu":235.5058},{"c":"SWITCHQUOTE2","spend":19285.46,"ctr":0.1701,"cpm":9.8937,"cplpv":8.4883,"cppsu":2142.8289,"cpfsu":771.4184},{"c":"CLAIMSECOMM","spend":19023.84,"ctr":0.0397,"cpm":5.6437,"cplpv":12.3853,"cppsu":792.66,"cpfsu":475.596},{"c":"GENAIEXPLAINER","spend":17608.15,"ctr":0.0849,"cpm":3.8105,"cplpv":5.2766,"cppsu":677.2365,"cpfsu":352.163},{"c":"QBSEG","spend":16732.47,"ctr":0.1722,"cpm":12.0233,"cplpv":9.6274,"cppsu":1859.1633,"cpfsu":557.749}],"MYM":[{"c":"MULTI","spend":2153777.04,"ctr":0.08,"cpm":4.3435,"cplpv":5.186,"cppsu":1508.2472,"cpfsu":448.7036},{"c":"CJBCOSMETIC","spend":144187.2,"ctr":0.1016,"cpm":3.7702,"cplpv":4.1837,"cppsu":385.5273,"cpfsu":220.1331},{"c":"FEBSIZZLE","spend":96209.06,"ctr":0.0957,"cpm":4.8938,"cplpv":5.6036,"cppsu":449.575,"cpfsu":336.3953},{"c":"MULTIEXPLAINER ","spend":78281.85,"ctr":0.1239,"cpm":3.8918,"cplpv":3.6721,"cppsu":543.624,"cpfsu":230.2407},{"c":"MULTIPHONES","spend":33222.78,"ctr":0.0681,"cpm":4.0586,"cplpv":6.4964,"cppsu":474.6111,"cpfsu":283.9554},{"c":"POPUP","spend":30294.53,"ctr":0.0836,"cpm":3.9086,"cplpv":5.4223,"cppsu":322.2822,"cpfsu":219.5256},{"c":"JOHNNY","spend":21195.52,"ctr":0.0896,"cpm":4.6388,"cplpv":5.8487,"cppsu":359.2461,"cpfsu":235.5058},{"c":"GENAIEXPLAINER","spend":17608.15,"ctr":0.0849,"cpm":3.8105,"cplpv":5.2766,"cppsu":677.2365,"cpfsu":352.163},{"c":"JOHNNYV2","spend":14065.5,"ctr":0.125,"cpm":4.7026,"cplpv":4.4371,"cppsu":351.6375,"cpfsu":281.31},{"c":"SHOPIFY","spend":11979.66,"ctr":0.0915,"cpm":3.9106,"cplpv":4.7747,"cppsu":352.3429,"cpfsu":266.2147},{"c":"REPORTING","spend":11295.37,"ctr":0.0525,"cpm":3.2895,"cplpv":7.7102,"cppsu":664.4335,"cpfsu":470.6404},{"c":"GRUPPO","spend":11227.17,"ctr":0.0728,"cpm":3.5007,"cplpv":5.6192,"cppsu":387.1438,"cpfsu":374.239},{"c":"SMS","spend":5963.0,"ctr":0.0818,"cpm":3.9335,"cplpv":5.6953,"cppsu":271.0455,"cpfsu":350.7647},{"c":"JOHNNYV1","spend":4655.24,"ctr":0.1188,"cpm":4.6894,"cplpv":4.707,"cppsu":290.9525,"cpfsu":310.3493}],"ABM":[{"c":"SWITCHQUOTE1","spend":70321.96,"ctr":0.1686,"cpm":10.0684,"cplpv":9.0087,"cppsu":3196.4527,"cpfsu":1465.0408},{"c":"GENAI","spend":27722.88,"ctr":0.1856,"cpm":14.9999,"cplpv":12.1272,"cppsu":1459.0989,"cpfsu":815.3788},{"c":"QBGENAI","spend":21853.65,"ctr":0.1649,"cpm":12.635,"cplpv":11.0595,"cppsu":1214.0917,"cpfsu":753.5741},{"c":"SWITCHQUOTE2","spend":19285.46,"ctr":0.1701,"cpm":9.8937,"cplpv":8.4883,"cppsu":2142.8289,"cpfsu":771.4184},{"c":"CLAIMSECOMM","spend":19023.84,"ctr":0.0397,"cpm":5.6437,"cplpv":12.3853,"cppsu":792.66,"cpfsu":475.596},{"c":"QBSEG","spend":16732.47,"ctr":0.1722,"cpm":12.0233,"cplpv":9.6274,"cppsu":1859.1633,"cpfsu":557.749},{"c":"CLAIMSCAROECOMM","spend":13327.83,"ctr":0.1783,"cpm":12.5751,"cplpv":14.3774,"cppsu":13327.83,"cpfsu":951.9879},{"c":"QBINTEGRATE","spend":10462.57,"ctr":0.1796,"cpm":13.3155,"cplpv":11.51,"cppsu":2615.6425,"cpfsu":804.8131},{"c":"REPORTINGQUOTE","spend":10201.45,"ctr":0.1808,"cpm":11.1416,"cplpv":9.828,"cppsu":2550.3625,"cpfsu":1020.145},{"c":"1CLAIMECOMM","spend":8567.5,"ctr":0.0827,"cpm":3.8586,"cplpv":6.1284,"cppsu":611.9643,"cpfsu":208.9634},{"c":"QBONBOARD","spend":8493.58,"ctr":0.1812,"cpm":11.9223,"cplpv":10.0278,"cppsu":2123.395,"cpfsu":943.7311},{"c":"1CLAIMENTLEIS","spend":7215.84,"ctr":0.078,"cpm":2.8861,"cplpv":5.1249,"cppsu":721.584,"cpfsu":379.7811},{"c":"MCSHOPIFYV3","spend":7018.79,"ctr":0.1079,"cpm":12.0772,"cplpv":14.7144,"cppsu":1754.6975,"cpfsu":779.8656},{"c":"SEG","spend":6742.89,"ctr":0.082,"cpm":11.5462,"cplpv":16.4061,"cppsu":1685.7225,"cpfsu":561.9075},{"c":"CLAIMSENTLEIS","spend":5932.37,"ctr":0.0344,"cpm":2.9578,"cplpv":5.8389,"cppsu":988.7283,"cpfsu":228.1681}],"REMARKETING":[{"c":"MULTIPHONES","spend":162807.88,"ctr":0.0453,"cpm":5.7358,"cplpv":16.7308,"cppsu":254.7854,"cpfsu":149.5022},{"c":"MULTIEXPLAINER","spend":62190.11,"ctr":0.0595,"cpm":5.2453,"cplpv":11.8457,"cppsu":290.608,"cpfsu":136.6816}]}},"Engage":{"charts":{"ALL":{"CPLPV":[0.7213,0.5358,0.5629,0.653,0.6324,0.6355,0.6831,0.6249,0.7202,0.6251,0.6479,0.7333,0.7509,0.7013,0.6984,0.8459,0.8849,0.9192,0.9135,0.9272,0.8844,0.7177,0.5879,0.5897,0.7248,0.7745,0.8324,0.6192,0.6468,0.6222,0.6678,0.6468,0.6663,0.6935,0.5969,0.4911],"CTR":[3.2264,1.5662,1.2947,1.7809,2.0292,2.0822,1.4238,1.2634,1.199,1.2133,1.3555,1.1884,1.1343,1.035,1.0463,1.1833,1.1632,1.1802,1.1175,1.1989,1.3123,1.2087,1.0698,1.0809,1.1651,1.0889,1.0092,1.4777,1.4481,1.8746,1.7653,1.5404,1.4657,1.8306,2.2306,3.1306]},"MYM":{"CPLPV":[0.6177,0.5358,0.5629,0.653,0.6324,0.6355,0.6831,0.6243,0.7196,0.6247,0.6476,0.7334,0.7131,0.656,0.6521,0.8062,0.843,0.8744,0.8551,0.8748,0.8406,0.6829,0.5512,0.5454,0.7131,0.7651,0.825,0.6136,0.6399,0.6178,0.6649,0.6421,0.6596,0.6872,0.5906,0.4666],"CTR":[4.0241,1.5662,1.2947,1.7809,2.0292,2.0822,1.4238,1.2651,1.2012,1.2146,1.358,1.1891,1.1704,1.061,1.0574,1.2148,1.1897,1.2176,1.1284,1.2232,1.3711,1.2554,1.0894,1.0982,1.178,1.0984,1.0211,1.4982,1.4725,1.9073,1.785,1.5611,1.4866,1.8705,2.2832,3.3002]},"ABM":{"CPLPV":[null,null,null,null,null,null,null,0.8429,0.8695,0.764,0.7443,0.694,0.8406,0.7818,1.0486,0.7914,1.103,0.9148,1.2627,1.5432,1.2024,0.8771,0.8184,0.6963,0.7632,1.013,1.1827,0.9608,1.0317,1.0072,1.0271,1.0261,1.1519,1.0878,1.0931,1.0009],"CTR":[null,null,null,null,null,null,null,0.8558,0.8404,0.9116,0.726,0.9018,0.7441,0.7136,0.7019,0.8884,0.6993,0.8006,0.6373,0.775,0.7505,1.0254,0.6596,0.7394,0.7764,0.5971,0.6929,0.798,0.7568,0.7381,0.7436,0.7341,0.7342,0.7423,0.7787,0.8734]},"BOOSTING":{"CPLPV":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,11.6093],"CTR":[0.6538,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,0.2917]},"REMARKETING":{"CPLPV":[null,null,null,null,null,null,null,null,null,null,null,null,1.1661,1.0464,1.0421,1.095,1.1431,1.2041,1.3156,1.3093,1.1862,0.9568,0.8112,0.8149,0.8825,0.9097,0.9343,null,null,null,null,null,null,null,null,null],"CTR":[null,null,null,null,null,null,null,null,null,null,null,null,0.8658,0.8825,0.9781,1.0222,1.0328,0.9984,1.0558,1.0497,1.0017,0.9549,0.9651,1.004,1.0145,0.9671,0.8661,null,null,null,null,null,null,null,null,null]}},"creatives":{"ALL":[{"c":"CJB","spend":657824.48,"ctr":0.9043,"cpm":6.629,"cplpv":0.7062,"cppsu":3240.5147,"cpfsu":1181.0134},{"c":"MULTI","spend":527424.8,"ctr":1.0314,"cpm":7.8249,"cplpv":0.6804,"cppsu":2511.5467,"cpfsu":948.6058},{"c":"GENAI","spend":398986.61,"ctr":4.0027,"cpm":21.4407,"cplpv":0.7153,"cppsu":16624.4421,"cpfsu":3352.8287},{"c":"SMSCOUNTRY","spend":151908.65,"ctr":1.1795,"cpm":9.8124,"cplpv":0.8796,"cppsu":1787.1606,"cpfsu":690.4939},{"c":"WARCEQREPORT","spend":143637.06,"ctr":0.9369,"cpm":6.8206,"cplpv":0.7699,"cppsu":13057.9145,"cpfsu":4352.6382},{"c":"MCSHOPIFYV3","spend":101138.32,"ctr":1.5578,"cpm":12.9874,"cplpv":0.8965,"cppsu":6321.145,"cpfsu":1983.1043},{"c":"JOHNNYV1","spend":51915.04,"ctr":2.0545,"cpm":12.1813,"cplpv":0.6695,"cppsu":3244.69,"cpfsu":4326.2533},{"c":"JOHNNYV2","spend":47746.01,"ctr":1.757,"cpm":10.2031,"cplpv":0.6434,"cppsu":2652.5561,"cpfsu":2170.2732},{"c":"PIXELAUTO","spend":42482.61,"ctr":2.4902,"cpm":14.8619,"cplpv":0.6543,"cppsu":10620.6525,"cpfsu":3862.0555},{"c":"ALLPRODUCTS","spend":39746.47,"ctr":1.3415,"cpm":10.4421,"cplpv":0.8477,"cppsu":3312.2058,"cpfsu":1728.1074},{"c":"SMS","spend":29769.86,"ctr":0.8333,"cpm":8.4047,"cplpv":1.051,"cppsu":1353.1755,"cpfsu":708.8062},{"c":"HOLIDAYREPORT","spend":27003.71,"ctr":1.0443,"cpm":9.0756,"cplpv":0.7725,"cppsu":3857.6729,"cpfsu":1174.0743},{"c":"WLRNV2","spend":26859.77,"ctr":4.3976,"cpm":15.0203,"cplpv":0.3629,"cppsu":2066.1362,"cpfsu":1167.8161},{"c":"ERIN","spend":23373.43,"ctr":2.0792,"cpm":13.224,"cplpv":0.6869,"cppsu":3339.0614,"cpfsu":2921.6788},{"c":"SMSEXPAND","spend":19899.29,"ctr":1.7609,"cpm":10.8008,"cplpv":0.7028,"cppsu":3979.858,"cpfsu":1530.7146}],"MYM":[{"c":"CJB","spend":657824.48,"ctr":0.9043,"cpm":6.629,"cplpv":0.7062,"cppsu":3240.5147,"cpfsu":1181.0134},{"c":"GENAI","spend":398986.61,"ctr":4.0027,"cpm":21.4407,"cplpv":0.7153,"cppsu":16624.4421,"cpfsu":3352.8287},{"c":"MULTI","spend":392752.09,"ctr":1.03,"cpm":7.219,"cplpv":0.6099,"cppsu":3740.4961,"cpfsu":1161.9884},{"c":"WARCEQREPORT","spend":143636.9,"ctr":0.9369,"cpm":6.8206,"cplpv":0.7699,"cppsu":13057.9,"cpfsu":4352.6333},{"c":"SMSCOUNTRY","spend":111222.89,"ctr":1.2398,"cpm":9.5596,"cplpv":0.813,"cppsu":3475.7153,"cpfsu":1158.5718},{"c":"MCSHOPIFYV3","spend":101138.32,"ctr":1.5578,"cpm":12.9874,"cplpv":0.8965,"cppsu":6321.145,"cpfsu":1983.1043},{"c":"JOHNNYV1","spend":51915.04,"ctr":2.0545,"cpm":12.1813,"cplpv":0.6695,"cppsu":3244.69,"cpfsu":4326.2533},{"c":"JOHNNYV2","spend":47746.01,"ctr":1.757,"cpm":10.2031,"cplpv":0.6434,"cppsu":2652.5561,"cpfsu":2170.2732},{"c":"PIXELAUTO","spend":42482.61,"ctr":2.4902,"cpm":14.8619,"cplpv":0.6543,"cppsu":10620.6525,"cpfsu":3862.0555},{"c":"ALLPRODUCTS","spend":39746.47,"ctr":1.3415,"cpm":10.4421,"cplpv":0.8477,"cppsu":3312.2058,"cpfsu":1728.1074},{"c":"HOLIDAYREPORT","spend":27003.71,"ctr":1.0443,"cpm":9.0756,"cplpv":0.7725,"cppsu":3857.6729,"cpfsu":1174.0743},{"c":"WLRNV2","spend":26859.77,"ctr":4.3976,"cpm":15.0203,"cplpv":0.3629,"cppsu":2066.1362,"cpfsu":1167.8161},{"c":"ERIN","spend":23373.43,"ctr":2.0792,"cpm":13.224,"cplpv":0.6869,"cppsu":3339.0614,"cpfsu":2921.6788},{"c":"SMSEXPAND","spend":19899.29,"ctr":1.7609,"cpm":10.8008,"cplpv":0.7028,"cppsu":3979.858,"cpfsu":1530.7146},{"c":"SEG","spend":17756.9,"ctr":0.7785,"cpm":6.884,"cplpv":0.6149,"cppsu":5918.9667,"cpfsu":845.5667}],"ABM":[{"c":"AUTOECOMM","spend":4743.32,"ctr":0.759,"cpm":7.2632,"cplpv":1.0357,"cppsu":4743.32,"cpfsu":4743.32},{"c":"GENAIECOMM","spend":3181.37,"ctr":0.7177,"cpm":6.5936,"cplpv":0.9693,"cppsu":1590.685,"cpfsu":795.3425},{"c":"KLAVIYOSAVINGS","spend":1699.89,"ctr":0.6876,"cpm":7.1355,"cplpv":1.147,"cppsu":null,"cpfsu":1699.89},{"c":"CLAIMSCAROECOMM","spend":958.56,"ctr":1.0656,"cpm":9.6816,"cplpv":0.9985,"cppsu":null,"cpfsu":null},{"c":"GENAIENTLEIS","spend":509.02,"ctr":0.7615,"cpm":6.7291,"cplpv":0.7807,"cppsu":null,"cpfsu":509.02},{"c":"DSBMEOWBOX","spend":343.86,"ctr":1.0411,"cpm":10.4371,"cplpv":1.0847,"cppsu":null,"cpfsu":null},{"c":"KLAVIYOBIKER","spend":157.86,"ctr":1.1015,"cpm":10.8674,"cplpv":1.1781,"cppsu":null,"cpfsu":null},{"c":"AUTONPO","spend":123.55,"ctr":0.8999,"cpm":7.885,"cplpv":0.8075,"cppsu":null,"cpfsu":null},{"c":"ROICALCV3","spend":115.87,"ctr":0.8358,"cpm":7.6862,"cplpv":0.9819,"cppsu":null,"cpfsu":null},{"c":"DSBMBSHOPIFY","spend":96.02,"ctr":0.8511,"cpm":6.8099,"cplpv":0.8974,"cppsu":null,"cpfsu":null},{"c":"INTEGRATENPO","spend":50.01,"ctr":1.0904,"cpm":7.903,"cplpv":0.7354,"cppsu":50.01,"cpfsu":25.005},{"c":"AUTOENTLEIS","spend":41.49,"ctr":0.5014,"cpm":7.4302,"cplpv":1.1854,"cppsu":null,"cpfsu":null},{"c":"CLAIMSCAROENTLEIS","spend":34.28,"ctr":1.0346,"cpm":12.2298,"cplpv":1.1821,"cppsu":null,"cpfsu":null},{"c":"INTEGRATEEDU","spend":18.6,"ctr":0.8366,"cpm":8.1902,"cplpv":0.744,"cppsu":null,"cpfsu":null},{"c":"AUTOEDU","spend":9.3,"ctr":0.7137,"cpm":7.3751,"cplpv":1.1625,"cppsu":null,"cpfsu":null}],"BOOSTING":[{"c":"LEADADSINT","spend":1267.37,"ctr":0.6538,"cpm":9.7937,"cplpv":null,"cppsu":422.4567,"cpfsu":1267.37},{"c":"SMSFebORG","spend":1246.02,"ctr":0.9133,"cpm":46.8305,"cplpv":8.837,"cppsu":null,"cpfsu":null},{"c":"OptInReportORG","spend":994.57,"ctr":0.0935,"cpm":11.9176,"cplpv":19.1263,"cppsu":null,"cpfsu":null}],"REMARKETING":[{"c":"MULTI","spend":134672.71,"ctr":1.0371,"cpm":10.3612,"cplpv":1.0261,"cppsu":1282.5972,"cpfsu":617.7647},{"c":"SMSCOUNTRY","spend":40685.76,"ctr":0.9971,"cpm":10.5771,"cplpv":1.1337,"cppsu":767.6558,"cpfsu":328.111},{"c":"SMS","spend":29769.86,"ctr":0.8333,"cpm":8.4047,"cplpv":1.051,"cppsu":1353.1755,"cpfsu":708.8062},{"c":"SMSAUDIENCE","spend":4871.12,"ctr":0.5718,"cpm":6.0826,"cplpv":1.1693,"cppsu":811.8533,"cpfsu":405.9267}]}},"Acquire":{"charts":{"ALL":{"CPPSU":[466.4673,152.9748,244.0961,285.508,277.7896,237.3326,239.9866,230.8146,250.0201,243.6035,236.9321,278.8285,277.6467,265.4771,162.2693,202.436,189.6508,262.3121,211.4744,210.5417,132.8578,182.0996,221.9875,186.118,183.6105,176.7076,210.7184,113.6464,151.0174,175.8718,150.8183,136.8047,170.2431,226.3632,138.3333,85.0256],"CPFSU":[228.0507,64.3189,89.8624,91.297,113.5893,98.2169,95.8522,86.5555,88.2208,94.2474,105.6726,124.2585,130.7701,124.3327,94.8034,85.6405,87.1298,134.6678,87.9356,107.6197,53.5538,71.6551,100.353,86.5378,89.7028,98.1579,126.68,86.6763,104.6756,176.2484,135.3498,98.6021,122.8413,166.794,88.2948,71.2995]},"MYM":{"CPPSU":[529.57,169.3875,255.5183,300.1932,300.996,252.3871,248.5622,222.4339,239.0861,224.7317,214.1427,240.5328,262.1643,274.0223,173.5569,234.4308,206.9341,261.135,196.1566,169.124,78.4448,94.6912,158.1603,143.8723,142.3653,145.3728,133.5288,105.115,151.0174,162.6204,103.2812,111.9631,131.027,175.9858,129.9102,85.1394],"CPFSU":[226.9586,69.1223,89.4314,100.2565,120.5945,99.7469,99.8765,80.4999,80.5789,83.9276,95.0059,109.4865,120.5912,118.8069,98.2792,91.1399,87.942,127.3926,82.6632,82.1296,31.2975,38.0596,71.4009,65.0638,72.0084,79.6894,79.6158,80.301,104.6756,163.3184,93.0607,79.9558,97.0071,128.3107,83.3731,71.8634]},"ABM":{"CPPSU":[null,null,null,null,null,null,null,7143.79,16859.42,7160.2633,4197.434,5117.12,3172.2562,2548.7975,805.0408,2594.174,1278.482,2266.858,2277.7289,2609.105,2238.5193,4592.02,3620.635,1898.4226,3257.1973,3612.6525,4485.6893,null,null,null,4262.7783,1586.6564,854.7424,1071.1538,495.1121,null],"CPFSU":[null,null,null,null,null,null,null,1428.758,2107.4275,1534.3421,2331.9078,1827.5429,2537.805,1199.4341,966.049,1852.9814,913.2014,1133.429,1078.9242,1739.4033,1243.6219,2009.0087,2129.7853,839.6869,968.3559,3211.2467,1869.0372,3975.62,null,6201.64,2841.8522,2493.3171,427.3712,960.3448,256.7248,null]},"MCQB":{"CPPSU":[331.2471,110.0564,178.1133,201.27,169.0513,164.7249,189.6705,158.9171,162.6379,160.2769,181.5682,253.1,207.3276,191.8642,160.5523,146.7787,154.4147,194.6401,131.4885,158.9475,114.758,101.0104,179.2761,148.9123,119.1653,109.5145,109.6331,null,null,null,null,null,null,null,null,null],"CPFSU":[231.873,50.262,93.6004,51.7389,76.5103,88.2176,73.18,75.891,78.2309,79.0793,82.9079,97.6636,106.132,101.9621,86.5651,67.0536,86.2692,111.4059,48.224,99.3422,45.0247,31.0801,71.2784,76.9801,56.252,65.8674,71.2103,null,null,null,null,null,null,null,null,null]},"REMARKETING":{"CPPSU":[null,null,null,null,null,null,null,null,null,null,null,null,71.5505,59.4379,40.9235,40.9572,46.8252,128.1186,187.6076,252.9963,120.4778,139.5943,125.6624,157.8114,380.9827,797.78,168.384,null,null,null,null,null,null,null,null,null],"CPFSU":[null,null,null,null,null,null,null,null,null,null,null,null,36.2063,44.7255,29.2311,21.7453,24.1367,91.9826,113.1602,142.5331,54.215,94.5639,72.4156,106.164,112.0537,223.3784,107.9385,null,null,null,null,null,null,null,null,null]}},"creatives":{"ALL":[{"c":"CHOICEOO","spend":809145.05,"ctr":0.2068,"cpm":16.5608,"cplpv":10.912,"cppsu":185.3287,"cpfsu":104.5137},{"c":"FREETRIAL","spend":740027.56,"ctr":0.2462,"cpm":15.0995,"cplpv":8.0108,"cppsu":245.7747,"cpfsu":105.6729},{"c":"MULTI","spend":566006.69,"ctr":0.2369,"cpm":13.8468,"cplpv":7.432,"cppsu":156.1398,"cpfsu":69.1771},{"c":"POPUP","spend":301977.58,"ctr":0.1791,"cpm":13.4067,"cplpv":9.2269,"cppsu":158.9356,"cpfsu":77.0744},{"c":"GENAILEADGEN","spend":293123.23,"ctr":0.6558,"cpm":91.7402,"cplpv":444.1261,"cppsu":2594.0109,"cpfsu":1320.3749},{"c":"SEG","spend":217903.34,"ctr":0.3024,"cpm":13.5987,"cplpv":5.9734,"cppsu":157.1041,"cpfsu":66.5964},{"c":"ALLONE","spend":196394.51,"ctr":0.1942,"cpm":15.5407,"cplpv":11.4576,"cppsu":150.6093,"cpfsu":72.5238},{"c":"COMPCLAIMCARO","spend":161835.7,"ctr":1.0088,"cpm":9.0027,"cplpv":1.0242,"cppsu":291.0714,"cpfsu":114.8586},{"c":"GENAI","spend":156324.77,"ctr":0.2769,"cpm":14.0325,"cplpv":6.8859,"cppsu":224.6046,"cpfsu":99.4432},{"c":"FRJONNY","spend":134378.62,"ctr":1.9234,"cpm":8.5959,"cplpv":0.5888,"cppsu":179.4107,"cpfsu":116.9527},{"c":"AUTOLEADGEN","spend":120766.29,"ctr":0.6962,"cpm":86.285,"cplpv":306.5134,"cppsu":3659.5845,"cpfsu":1947.8434},{"c":"OPTINREPORT","spend":92867.4,"ctr":0.8541,"cpm":90.26,"cplpv":380.6041,"cppsu":1160.8425,"cpfsu":682.8485},{"c":"CJB","spend":86359.48,"ctr":0.2422,"cpm":13.5032,"cplpv":7.8766,"cppsu":153.3916,"cpfsu":62.8526},{"c":"INTEGRATE","spend":82103.6,"ctr":0.2702,"cpm":13.8133,"cplpv":6.9579,"cppsu":169.9867,"cpfsu":75.7413},{"c":"FINDCUST","spend":79394.25,"ctr":0.1932,"cpm":16.869,"cplpv":12.5386,"cppsu":127.849,"cpfsu":66.0518}],"MYM":[{"c":"CHOICEOO","spend":809145.05,"ctr":0.2068,"cpm":16.5608,"cplpv":10.912,"cppsu":185.3287,"cpfsu":104.5137},{"c":"FREETRIAL","spend":740027.56,"ctr":0.2462,"cpm":15.0995,"cplpv":8.0108,"cppsu":245.7747,"cpfsu":105.6729},{"c":"MULTI","spend":518827.93,"ctr":0.2184,"cpm":12.9985,"cplpv":7.6155,"cppsu":159.1497,"cpfsu":68.619},{"c":"POPUP","spend":301977.58,"ctr":0.1791,"cpm":13.4067,"cplpv":9.2269,"cppsu":158.9356,"cpfsu":77.0744},{"c":"SEG","spend":217903.34,"ctr":0.3024,"cpm":13.5987,"cplpv":5.9734,"cppsu":157.1041,"cpfsu":66.5964},{"c":"COMPCLAIMCARO","spend":161835.7,"ctr":1.0088,"cpm":9.0027,"cplpv":1.0242,"cppsu":291.0714,"cpfsu":114.8586},{"c":"GENAI","spend":156324.77,"ctr":0.2769,"cpm":14.0325,"cplpv":6.8859,"cppsu":224.6046,"cpfsu":99.4432},{"c":"FRJONNY","spend":134378.62,"ctr":1.9234,"cpm":8.5959,"cplpv":0.5888,"cppsu":179.4107,"cpfsu":116.9527},{"c":"CJB","spend":86359.48,"ctr":0.2422,"cpm":13.5032,"cplpv":7.8766,"cppsu":153.3916,"cpfsu":62.8526},{"c":"INTEGRATE","spend":82103.6,"ctr":0.2702,"cpm":13.8133,"cplpv":6.9579,"cppsu":169.9867,"cpfsu":75.7413},{"c":"VARDVASKAN","spend":74593.6,"ctr":0.2138,"cpm":14.1702,"cplpv":8.8308,"cppsu":156.0536,"cpfsu":66.2465},{"c":"BFCM","spend":40738.48,"ctr":0.2111,"cpm":12.3117,"cplpv":7.245,"cppsu":277.1325,"cpfsu":128.1084},{"c":"KAYLINPICKLES","spend":25435.93,"ctr":0.1926,"cpm":11.3296,"cplpv":9.2968,"cppsu":88.6269,"cpfsu":60.1322},{"c":"FRMADELINE","spend":17342.59,"ctr":0.662,"cpm":11.834,"cplpv":2.3747,"cppsu":113.3503,"cpfsu":72.5631},{"c":"WLRN","spend":16958.63,"ctr":0.2263,"cpm":28.7423,"cplpv":16.8407,"cppsu":807.5538,"cpfsu":353.3048}],"ABM":[{"c":"GENAILEADGEN","spend":293123.23,"ctr":0.6558,"cpm":91.7402,"cplpv":444.1261,"cppsu":2594.0109,"cpfsu":1320.3749},{"c":"AUTOLEADGEN","spend":120766.29,"ctr":0.6962,"cpm":86.285,"cplpv":306.5134,"cppsu":3659.5845,"cpfsu":1947.8434},{"c":"OPTINREPORT","spend":92867.4,"ctr":0.8541,"cpm":90.26,"cplpv":380.6041,"cppsu":1160.8425,"cpfsu":682.8485},{"c":"HOLIDAYLEADGEN","spend":76878.8,"ctr":0.6833,"cpm":111.8812,"cplpv":768.788,"cppsu":3075.152,"cpfsu":1220.2984},{"c":"WARCEQREPORT","spend":29340.71,"ctr":0.9096,"cpm":98.665,"cplpv":1333.6686,"cppsu":4890.1183,"cpfsu":2934.071},{"c":"REVBLUELEADGEN","spend":22031.16,"ctr":0.6676,"cpm":161.2669,"cplpv":611.9767,"cppsu":3671.86,"cpfsu":3147.3086},{"c":"POPPYSPICNIC","spend":1512.34,"ctr":0.6428,"cpm":67.9795,"cplpv":756.17,"cppsu":1512.34,"cpfsu":1512.34},{"c":"ECOMMCLAIMS","spend":811.3,"ctr":0.5876,"cpm":41.4563,"cplpv":270.4333,"cppsu":811.3,"cpfsu":null}],"MCQB":[{"c":"ALLONE","spend":196394.51,"ctr":0.1942,"cpm":15.5407,"cplpv":11.4576,"cppsu":150.6093,"cpfsu":72.5238},{"c":"FINDCUST","spend":79394.25,"ctr":0.1932,"cpm":16.869,"cplpv":12.5386,"cppsu":127.849,"cpfsu":66.0518},{"c":"QBGENAI","spend":59207.32,"ctr":0.2062,"cpm":11.0804,"cplpv":7.0226,"cppsu":200.0247,"cpfsu":100.8643},{"c":"QBSEG","spend":30350.23,"ctr":0.2117,"cpm":13.0873,"cplpv":8.1172,"cppsu":178.5308,"cpfsu":74.3878},{"c":"QBONBOARD","spend":27797.13,"ctr":0.2038,"cpm":12.714,"cplpv":8.154,"cppsu":187.8184,"cpfsu":60.1669},{"c":"BETTOGETH","spend":21394.64,"ctr":0.1985,"cpm":17.6381,"cplpv":12.2605,"cppsu":125.1149,"cpfsu":63.6745},{"c":"QBINTEGRATE","spend":20116.65,"ctr":0.2079,"cpm":12.6717,"cplpv":7.7223,"cppsu":231.2259,"cpfsu":91.0256},{"c":"MAXDATA","spend":13585.0,"ctr":0.1761,"cpm":16.1227,"cplpv":12.7439,"cppsu":152.6404,"cpfsu":61.4706}],"REMARKETING":[{"c":"MULTI","spend":47178.76,"ctr":1.0066,"cpm":49.0541,"cplpv":5.8753,"cppsu":129.2569,"cpfsu":75.9722},{"c":"SMSCLAIM","spend":15004.49,"ctr":1.5837,"cpm":34.1622,"cplpv":2.4838,"cppsu":105.6654,"cpfsu":58.6113},{"c":"SMSROI","spend":12467.13,"ctr":0.3927,"cpm":26.2221,"cplpv":8.1913,"cppsu":60.8153,"cpfsu":34.4396}]}}};
+
+function renderWoW(funnel, campaign) {
+  const metrics  = METRICS[funnel];
+  const chartData = DATA[funnel].charts[campaign];
+  const color    = FUNNEL_COLOR[funnel].line1;
+  const campLabel = campaign === 'ALL' ? 'All Campaigns' : campaign;
+  const card     = document.getElementById('wow-' + funnel.toLowerCase());
+
+  const rows = metrics.map(m => {
+    const v34 = chartData[m][34];
+    const v35 = chartData[m][35];
+    let deltaHtml = '<span class="wow-delta delta-neutral">—</span>';
+    if (v34 != null && v35 != null && v34 !== 0) {
+      const pct = (v35 - v34) / Math.abs(v34) * 100;
+      const isGood = LOWER_IS_BETTER[m] ? (v35 < v34) : (v35 > v34);
+      const arrow  = pct > 0 ? '↑' : '↓';
+      const cls    = Math.abs(pct) < 0.05 ? 'delta-neutral' : (isGood ? 'delta-good' : 'delta-bad');
+      deltaHtml = `<span class="wow-delta ${cls}">${arrow} ${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</span>`;
+    }
+    return `
+      <div class="wow-metric-row">
+        <div class="wow-metric-name">${m}</div>
+        <div class="wow-vals">
+          <div class="wow-val">
+            <div class="wk-label">Wk 35</div>
+            <div class="wk-value">${v34 != null ? FMT[m](v34) : '—'}</div>
+          </div>
+          <div class="wow-val">
+            <div class="wk-label">Wk 36</div>
+            <div class="wk-value">${v35 != null ? FMT[m](v35) : '—'}</div>
+          </div>
+          ${deltaHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="wow-funnel-label" style="color:${color}">
+      ${funnel}
+      <span class="wow-camp-tag">· ${campLabel}</span>
+    </div>
+    ${rows}`;
+}
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+['Attract','Engage','Acquire'].forEach(funnel => {
+  initCharts(funnel);
+  buildFilters(funnel);
+  buildTable(funnel, 'ALL');
+  renderWoW(funnel, 'ALL');
+});
+</script>
+</body>
+</html>
